@@ -19,62 +19,102 @@ export default function ExerciseCard({
 }: ExerciseCardProps) {
   return (
     <div
-      className={`rounded-xl border p-4 transition-all ${
-        isCompletedToday
-          ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
-          : "bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md"
-      }`}
+      className="rounded-xl px-4 py-3.5 flex items-center gap-4 transition-all group"
+      style={{
+        background: isCompletedToday
+          ? "oklch(96% 0.04 145 / 0.5)"
+          : "var(--surface-raised)",
+        border: isCompletedToday
+          ? "1px solid oklch(80% 0.10 145 / 0.4)"
+          : "1px solid var(--border)",
+        boxShadow: isCompletedToday ? "none" : "var(--shadow-sm)",
+        transitionDuration: "var(--duration-normal)",
+      }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {isCompletedToday && <span className="text-green-500">✅</span>}
-          <h4
-            className={`font-semibold ${
-              isCompletedToday
-                ? "text-green-700 dark:text-green-400"
-                : "text-gray-900 dark:text-white"
-            }`}
-          >
-            {exercise.name}
-          </h4>
-        </div>
-        <div className="flex gap-1">
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-            title="编辑"
-          >
-            ✏️
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            title="删除"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-        <span>{exercise.sets} 组</span>
-        <span>×</span>
-        <span>{exercise.reps} 次</span>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <span>休息 {exercise.restSeconds}s</span>
-      </div>
-
-      <button
-        onClick={onStart}
-        disabled={isCompletedToday}
-        className={`w-full py-2.5 rounded-lg font-medium transition-colors ${
-          isCompletedToday
-            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 cursor-default"
-            : "bg-indigo-500 hover:bg-indigo-600 text-white"
-        }`}
+      {/* Completion indicator */}
+      <div
+        className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all"
+        style={{
+          background: isCompletedToday ? "var(--success)" : "transparent",
+          border: isCompletedToday ? "none" : "1.5px solid var(--border-strong)",
+          transitionDuration: "var(--duration-normal)",
+        }}
       >
-        {isCompletedToday ? "已完成 ✓" : "▶ 开始训练"}
-      </button>
+        {isCompletedToday && (
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+
+      {/* Name + meta */}
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-sm font-semibold leading-tight truncate"
+          style={{
+            color: isCompletedToday ? "var(--success-dark)" : "var(--text-primary)",
+            textDecoration: isCompletedToday ? "line-through" : "none",
+            textDecorationColor: "var(--success)",
+          }}
+        >
+          {exercise.name}
+        </p>
+        <p className="text-xs mt-0.5 tabular" style={{ color: "var(--text-tertiary)" }}>
+          {exercise.sets} 组 × {exercise.reps} 次
+          <span className="mx-1.5" style={{ color: "var(--border-strong)" }}>·</span>
+          休息 {exercise.restSeconds}s
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Edit / Delete — visible on hover */}
+        <button
+          onClick={onEdit}
+          className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            color: "var(--text-tertiary)",
+            transitionDuration: "var(--duration-fast)",
+          }}
+          title="编辑"
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M9.5 1.5L11.5 3.5L4.5 10.5H2.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button
+          onClick={onDelete}
+          className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            color: "var(--text-tertiary)",
+            transitionDuration: "var(--duration-fast)",
+          }}
+          title="删除"
+        >
+          <svg width="12" height="13" viewBox="0 0 12 13" fill="none">
+            <path d="M1 3H11M4 3V2H8V3M2 3L3 11H9L10 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {/* Start button */}
+        <button
+          onClick={onStart}
+          disabled={isCompletedToday}
+          className="ml-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+          style={{
+            background: isCompletedToday
+              ? "oklch(90% 0.06 145 / 0.5)"
+              : "var(--brand-500)",
+            color: isCompletedToday
+              ? "var(--success-dark)"
+              : "white",
+            cursor: isCompletedToday ? "default" : "pointer",
+            transitionDuration: "var(--duration-normal)",
+          }}
+        >
+          {isCompletedToday ? "已完成" : "开始"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,18 @@ interface ExerciseFormProps {
   onCancel: () => void;
 }
 
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "var(--radius-md)",
+  border: "1.5px solid var(--border)",
+  background: "var(--surface-base)",
+  color: "var(--text-primary)",
+  fontSize: "0.875rem",
+  outline: "none",
+  transition: `border-color var(--duration-fast)`,
+};
+
 export default function ExerciseForm({ bodyPart, existing, onSave, onCancel }: ExerciseFormProps) {
   const [name, setName] = useState(existing?.name || "");
   const [sets, setSets] = useState(existing?.sets || 4);
@@ -20,29 +32,37 @@ export default function ExerciseForm({ bodyPart, existing, onSave, onCancel }: E
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave({
-      id: existing?.id || generateId(),
-      name: name.trim(),
-      bodyPart,
-      sets,
-      reps,
-      restSeconds,
-    });
+    onSave({ id: existing?.id || generateId(), name: name.trim(), bodyPart, sets, reps, restSeconds });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "oklch(0% 0 0 / 0.5)", backdropFilter: "blur(6px)" }}
+    >
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6"
+        className="w-full max-w-sm rounded-2xl p-6"
+        style={{
+          background: "var(--surface-raised)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid var(--border)",
+        }}
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {existing ? "编辑训练" : "添加训练"}
+        <h3
+          className="text-base font-semibold mb-5"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {existing ? "编辑训练动作" : "添加训练动作"}
         </h3>
 
         <div className="space-y-4">
+          {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              className="block text-xs font-medium mb-1.5"
+              style={{ color: "var(--text-secondary)" }}
+            >
               动作名称
             </label>
             <input
@@ -50,66 +70,60 @@ export default function ExerciseForm({ bodyPart, existing, onSave, onCancel }: E
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例如：哑铃弯举"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+              style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--brand-500)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
               autoFocus
             />
           </div>
 
+          {/* Sets / Reps / Rest */}
           <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                组数
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={sets}
-                onChange={(e) => setSets(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                每组次数
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={reps}
-                onChange={(e) => setReps(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                休息(秒)
-              </label>
-              <input
-                type="number"
-                min={10}
-                max={300}
-                step={5}
-                value={restSeconds}
-                onChange={(e) => setRestSeconds(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-              />
-            </div>
+            {[
+              { label: "组数", value: sets, onChange: setSets, min: 1, max: 20 },
+              { label: "每组次数", value: reps, onChange: setReps, min: 1, max: 100 },
+              { label: "休息(秒)", value: restSeconds, onChange: setRestSeconds, min: 10, max: 300, step: 5 },
+            ].map(({ label, value, onChange, min, max, step }) => (
+              <div key={label}>
+                <label
+                  className="block text-xs font-medium mb-1.5"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {label}
+                </label>
+                <input
+                  type="number"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={value}
+                  onChange={(e) => onChange(Number(e.target.value))}
+                  style={{ ...inputStyle, textAlign: "center" }}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--brand-500)")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-2 mt-6">
           <button
             type="submit"
-            className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "var(--brand-500)", color: "white" }}
           >
             保存
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium"
+            style={{
+              background: "var(--surface-base)",
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border)",
+            }}
           >
             取消
           </button>

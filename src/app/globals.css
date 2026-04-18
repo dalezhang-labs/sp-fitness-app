@@ -1,26 +1,168 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────
+   Design Tokens — OKLCH color space
+   Brand: energetic amber-orange (hue ~55)
+   Tinted neutrals lean toward brand hue
+   ───────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand — amber-orange, not the default blue/purple */
+  --brand-50:  oklch(97% 0.025 55);
+  --brand-100: oklch(93% 0.055 55);
+  --brand-200: oklch(86% 0.10  55);
+  --brand-300: oklch(78% 0.14  55);
+  --brand-400: oklch(70% 0.17  55);
+  --brand-500: oklch(62% 0.19  55);   /* primary CTA */
+  --brand-600: oklch(54% 0.18  55);
+  --brand-700: oklch(44% 0.15  55);
+  --brand-800: oklch(34% 0.10  55);
+  --brand-900: oklch(24% 0.06  55);
+
+  /* Tinted neutrals — chroma 0.008, hue 55 (brand-tinted) */
+  --neutral-0:   oklch(100% 0     0);
+  --neutral-50:  oklch(98%  0.006 55);
+  --neutral-100: oklch(95%  0.008 55);
+  --neutral-200: oklch(90%  0.008 55);
+  --neutral-300: oklch(82%  0.008 55);
+  --neutral-400: oklch(68%  0.008 55);
+  --neutral-500: oklch(54%  0.008 55);
+  --neutral-600: oklch(42%  0.008 55);
+  --neutral-700: oklch(32%  0.008 55);
+  --neutral-800: oklch(22%  0.008 55);
+  --neutral-900: oklch(14%  0.008 55);
+  --neutral-950: oklch(10%  0.006 55);
+
+  /* Semantic */
+  --success-light: oklch(92% 0.08 145);
+  --success:       oklch(58% 0.18 145);
+  --success-dark:  oklch(40% 0.14 145);
+  --error-light:   oklch(93% 0.06 25);
+  --error:         oklch(58% 0.20 25);
+  --warning:       oklch(78% 0.16 80);
+
+  /* Surfaces — light mode */
+  --surface-base:    var(--neutral-50);
+  --surface-raised:  var(--neutral-0);
+  --surface-overlay: var(--neutral-0);
+  --border:          var(--neutral-200);
+  --border-strong:   var(--neutral-300);
+
+  /* Text — light mode */
+  --text-primary:   var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary:  var(--neutral-400);
+  --text-inverse:   var(--neutral-0);
+
+  /* Shadows — subtle, brand-tinted */
+  --shadow-sm: 0 1px 3px oklch(14% 0.01 55 / 0.08),
+               0 1px 2px oklch(14% 0.01 55 / 0.06);
+  --shadow-md: 0 4px 12px oklch(14% 0.01 55 / 0.10),
+               0 2px 4px  oklch(14% 0.01 55 / 0.06);
+  --shadow-lg: 0 12px 32px oklch(14% 0.01 55 / 0.12),
+               0 4px 8px   oklch(14% 0.01 55 / 0.08);
+
+  /* Spacing — 4pt base */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-body:    "DM Sans", system-ui, sans-serif;
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-mono:    "DM Mono", ui-monospace, monospace;
+
+  /* Line heights — vertical rhythm base 24px (16px × 1.5) */
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+  --leading-loose:  1.75;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* ─── Dark mode ─────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Surfaces — depth via lightness, not shadows */
+    --surface-base:    var(--neutral-950);
+    --surface-raised:  var(--neutral-900);
+    --surface-overlay: var(--neutral-800);
+    --border:          var(--neutral-800);
+    --border-strong:   var(--neutral-700);
+
+    /* Text */
+    --text-primary:   var(--neutral-50);
+    --text-secondary: var(--neutral-400);
+    --text-tertiary:  var(--neutral-600);
+    --text-inverse:   var(--neutral-950);
+
+    /* Shadows — less prominent in dark mode */
+    --shadow-sm: 0 1px 3px oklch(0% 0 0 / 0.3);
+    --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.4);
+    --shadow-lg: 0 12px 32px oklch(0% 0 0 / 0.5);
+
+    /* Desaturate brand slightly in dark mode */
+    --brand-500: oklch(65% 0.17 55);
   }
 }
 
+/* ─── Tailwind theme extension ──────────────── */
+@theme inline {
+  --color-background: var(--surface-base);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+/* ─── Base styles ───────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-kerning: normal;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular numbers for all numeric data */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Focus ring — accessible, brand-colored */
+:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Smooth scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
