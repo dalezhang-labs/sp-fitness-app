@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
-// GET /api/logs?date=2026-04-17  或  GET /api/logs (全部)
+// GET /api/logs?date=2026-04-17  or  GET /api/logs (all)
 export async function GET(req: NextRequest) {
   try {
     const sql = getDb();
     const date = req.nextUrl.searchParams.get("date");
 
     const rows = date
-      ? await sql`SELECT * FROM workout_logs WHERE log_date = ${date} ORDER BY completed_at`
-      : await sql`SELECT * FROM workout_logs ORDER BY completed_at DESC LIMIT 500`;
+      ? await sql`SELECT * FROM fitness.workout_logs WHERE log_date = ${date} ORDER BY completed_at`
+      : await sql`SELECT * FROM fitness.workout_logs ORDER BY completed_at DESC LIMIT 500`;
 
-    // 按日期分组，返回 DayLog[] 格式
+    // Group by date, return DayLog[] format
     const logMap: Record<string, { date: string; completedExercises: object[] }> = {};
     for (const r of rows) {
       const d = r.log_date instanceof Date
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const logDate = completedAtDate.toISOString().slice(0, 10);
 
     await sql`
-      INSERT INTO workout_logs
+      INSERT INTO fitness.workout_logs
         (exercise_id, exercise_name, body_part, completed_sets, total_sets, completed_at, log_date)
       VALUES
         (${exerciseId}, ${exerciseName}, ${bodyPart}, ${completedSets}, ${totalSets}, ${completedAt}, ${logDate})

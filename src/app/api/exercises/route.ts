@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
     const bodyPart = req.nextUrl.searchParams.get("bodyPart");
 
     const rows = bodyPart
-      ? await sql`SELECT * FROM exercises WHERE body_part = ${bodyPart} ORDER BY created_at`
-      : await sql`SELECT * FROM exercises ORDER BY body_part, created_at`;
+      ? await sql`SELECT * FROM fitness.exercises WHERE body_part = ${bodyPart} ORDER BY created_at`
+      : await sql`SELECT * FROM fitness.exercises ORDER BY body_part, created_at`;
 
-    // 转换字段名为 camelCase
+    // Convert snake_case to camelCase
     const exercises = rows.map((r) => ({
       id: r.id,
       name: r.name,
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const { id, name, bodyPart, sets, reps, restSeconds } = body;
 
     await sql`
-      INSERT INTO exercises (id, name, body_part, sets, reps, rest_seconds, updated_at)
+      INSERT INTO fitness.exercises (id, name, body_part, sets, reps, rest_seconds, updated_at)
       VALUES (${id}, ${name}, ${bodyPart}, ${sets}, ${reps}, ${restSeconds}, NOW())
       ON CONFLICT (id) DO UPDATE SET
         name         = EXCLUDED.name,

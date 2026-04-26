@@ -9,7 +9,7 @@ export async function DELETE(
   try {
     const sql = getDb();
     const { id } = await params;
-    await sql`DELETE FROM exercises WHERE id = ${id}`;
+    await sql`DELETE FROM fitness.exercises WHERE id = ${id}`;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
