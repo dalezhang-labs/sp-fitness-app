@@ -66,17 +66,18 @@ export default function ExerciseCard({
         </p>
       </div>
 
-      {/* Actions */}
+      {/* Actions — #1 fix: always visible on touch, hover-reveal on desktop */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Edit / Delete — visible on hover */}
         <button
           onClick={onEdit}
-          className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          className="w-7 h-7 rounded-lg flex items-center justify-center
+                     opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                     sm:group-focus-within:opacity-100 transition-opacity"
           style={{
             color: "var(--text-tertiary)",
             transitionDuration: "var(--duration-fast)",
           }}
-          title="编辑"
+          aria-label="编辑"
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <path d="M9.5 1.5L11.5 3.5L4.5 10.5H2.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
@@ -84,12 +85,14 @@ export default function ExerciseCard({
         </button>
         <button
           onClick={onDelete}
-          className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          className="w-7 h-7 rounded-lg flex items-center justify-center
+                     opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                     sm:group-focus-within:opacity-100 transition-opacity"
           style={{
             color: "var(--text-tertiary)",
             transitionDuration: "var(--duration-fast)",
           }}
-          title="删除"
+          aria-label="删除"
         >
           <svg width="12" height="13" viewBox="0 0 12 13" fill="none">
             <path d="M1 3H11M4 3V2H8V3M2 3L3 11H9L10 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>

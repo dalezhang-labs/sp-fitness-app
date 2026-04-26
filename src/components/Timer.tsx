@@ -5,6 +5,7 @@ import { Exercise, TimerPhase, CompletedExercise } from "@/lib/types";
 import { formatSeconds, todayStr } from "@/lib/utils";
 import { saveCompletedExercise } from "@/lib/storage";
 import { useSound } from "@/lib/useSound";
+import { toast } from "@/components/Toast";
 
 interface TimerProps {
   exercise: Exercise;
@@ -14,12 +15,14 @@ interface TimerProps {
 
 export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
   const [phase, setPhase] = useState<TimerPhase>("idle");
+  const [paused, setPaused] = useState(false);
+  const [confirmStop, setConfirmStop] = useState(false);
   const [currentSet, setCurrentSet] = useState(1);
   const [countdown, setCountdown] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Track which countdown values we've already played a tick for
   const tickedRef = useRef<Set<number>>(new Set());
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const { play } = useSound();
 
@@ -30,6 +33,7 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
   const startSet = useCallback(() => {
     const dur = exercise.reps * 3;
     setPhase("exercising");
+    setPaused(false);
     setCountdown(dur);
     setTotalDuration(dur);
     tickedRef.current = new Set();
@@ -38,20 +42,49 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
 
   const startRest = useCallback(() => {
     setPhase("resting");
+    setPaused(false);
     setCountdown(exercise.restSeconds);
     setTotalDuration(exercise.restSeconds);
     tickedRef.current = new Set();
     play("restStart");
   }, [exercise.restSeconds, play]);
 
+  // #4 fix: Esc to close + focus trap
   useEffect(() => {
-    if (phase === "idle" || phase === "done") { clearTimer(); return; }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (phase === "exercising" || phase === "resting") {
+          setConfirmStop(true);
+        } else {
+          onCancel();
+        }
+        return;
+      }
+      // Focus trap
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [phase, onCancel]);
+
+  useEffect(() => {
+    if (phase === "idle" || phase === "done" || paused) { clearTimer(); return; }
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => {
-        // Countdown ticks: 3, 2, 1 → play tick; 0 handled by transition
         if (prev <= 3 && prev > 0 && !tickedRef.current.has(prev)) {
           tickedRef.current.add(prev);
-          // Use a microtask so we don't call play() inside setState
           Promise.resolve().then(() => play("tick"));
         }
 
@@ -69,7 +102,9 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
                 totalSets: exercise.sets,
                 completedAt: new Date().toISOString(),
               };
-              saveCompletedExercise(todayStr(), entry).catch(console.error);
+              saveCompletedExercise(todayStr(), entry)
+                .then(() => toast("训练记录已保存", "success"))
+                .catch(() => toast("保存失败，请重试", "error"));
             } else {
               startRest();
             }
@@ -83,28 +118,66 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
       });
     }, 1000);
     return clearTimer;
-  }, [phase, currentSet, exercise, clearTimer, startRest, startSet, play]);
+  }, [phase, paused, currentSet, exercise, clearTimer, startRest, startSet, play]);
+
+  // #5 fix: pause/resume toggle
+  const togglePause = () => {
+    if (paused) {
+      setPaused(false);
+      play("click");
+    } else {
+      setPaused(true);
+      clearTimer();
+    }
+  };
+
+  // #5 fix: stop with confirmation
+  const handleStopClick = () => {
+    if (phase === "exercising" || phase === "resting") {
+      setConfirmStop(true);
+    } else {
+      play("cancel");
+      clearTimer();
+      onCancel();
+    }
+  };
+
+  const confirmStopAction = () => {
+    play("cancel");
+    clearTimer();
+    setConfirmStop(false);
+    onCancel();
+  };
 
   const progress = totalDuration > 0 ? (totalDuration - countdown) / totalDuration : 0;
   const circumference = 2 * Math.PI * 52;
   const dashOffset = circumference * (1 - progress);
 
-  const phaseLabel = { idle: "准备开始", exercising: "训练中", resting: "休息中", done: "完成！" }[phase];
+  const phaseLabel = paused
+    ? "已暂停"
+    : { idle: "准备开始", exercising: "训练中", resting: "休息中", done: "完成！" }[phase];
 
-  const accentColor = phase === "exercising"
-    ? "var(--brand-500)"
-    : phase === "resting"
-      ? "oklch(58% 0.18 220)"
-      : phase === "done"
-        ? "var(--success)"
-        : "var(--border-strong)";
+  const accentColor = paused
+    ? "var(--warning)"
+    : phase === "exercising"
+      ? "var(--brand-500)"
+      : phase === "resting"
+        ? "oklch(58% 0.18 220)"
+        : phase === "done"
+          ? "var(--success)"
+          : "var(--border-strong)";
+
+  const isActive = phase === "exercising" || phase === "resting";
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
       style={{ background: "oklch(0% 0 0 / 0.6)", backdropFilter: "blur(8px)" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${exercise.name} 计时器`}
     >
-      <div
+      <div ref={dialogRef}
         className="w-full max-w-sm rounded-2xl p-8 text-center"
         style={{
           background: "var(--surface-raised)",
@@ -126,13 +199,11 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
         {/* Ring timer */}
         <div className="relative w-40 h-40 mx-auto mb-6">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-            {/* Track */}
             <circle
               cx="60" cy="60" r="52"
               fill="none" strokeWidth="6"
               stroke="var(--border)"
             />
-            {/* Progress */}
             <circle
               cx="60" cy="60" r="52"
               fill="none" strokeWidth="6"
@@ -140,7 +211,7 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
               stroke={accentColor}
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
-              style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s ease" }}
+              style={{ transition: paused ? "none" : "stroke-dashoffset 1s linear, stroke 0.3s ease" }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -153,6 +224,7 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
                   style={{
                     color: phase === "idle" ? "var(--text-tertiary)" : "var(--text-primary)",
                     fontFamily: "var(--font-mono)",
+                    opacity: paused ? 0.5 : 1,
                   }}
                 >
                   {phase === "idle" ? "--:--" : formatSeconds(countdown)}
@@ -188,6 +260,38 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
           })}
         </div>
 
+        {/* Stop confirmation overlay */}
+        {confirmStop && (
+          <div
+            className="mb-4 p-3 rounded-xl"
+            style={{ background: "var(--error-light)", border: "1px solid var(--error)" }}
+          >
+            <p className="text-sm font-medium mb-2" style={{ color: "var(--error)" }}>
+              确定停止训练？进度不会保存
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={confirmStopAction}
+                className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                style={{ background: "var(--error)", color: "white" }}
+              >
+                确定停止
+              </button>
+              <button
+                onClick={() => setConfirmStop(false)}
+                className="flex-1 py-2 rounded-lg text-xs font-medium"
+                style={{
+                  background: "var(--surface-base)",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                继续训练
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Buttons */}
         <div className="flex gap-2">
           {phase === "idle" && (
@@ -212,25 +316,44 @@ export default function Timer({ exercise, onFinish, onCancel }: TimerProps) {
               完成 ✓
             </button>
           )}
-          <button
-            onClick={() => { play("cancel"); clearTimer(); onCancel(); }}
-            className="py-3 rounded-xl text-sm font-medium transition-all"
-            style={{
-              flex: phase === "exercising" || phase === "resting" ? 1 : "0 0 auto",
-              paddingLeft: "1.25rem",
-              paddingRight: "1.25rem",
-              background: phase === "exercising" || phase === "resting"
-                ? "var(--error-light)"
-                : "var(--surface-base)",
-              color: phase === "exercising" || phase === "resting"
-                ? "var(--error)"
-                : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-              transitionDuration: "var(--duration-normal)",
-            }}
-          >
-            {phase === "exercising" || phase === "resting" ? "停止" : "返回"}
-          </button>
+
+          {/* #5 fix: Pause/Resume button */}
+          {isActive && !confirmStop && (
+            <button
+              onClick={togglePause}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: paused ? "var(--brand-500)" : "var(--surface-base)",
+                color: paused ? "white" : "var(--text-secondary)",
+                border: paused ? "none" : "1px solid var(--border)",
+                transitionDuration: "var(--duration-normal)",
+              }}
+            >
+              {paused ? "▶ 继续" : "⏸ 暂停"}
+            </button>
+          )}
+
+          {!confirmStop && (
+            <button
+              onClick={handleStopClick}
+              className="py-3 rounded-xl text-sm font-medium transition-all"
+              style={{
+                flex: isActive ? "0 0 auto" : phase === "idle" ? "0 0 auto" : 1,
+                paddingLeft: "1.25rem",
+                paddingRight: "1.25rem",
+                background: isActive
+                  ? "var(--error-light)"
+                  : "var(--surface-base)",
+                color: isActive
+                  ? "var(--error)"
+                  : "var(--text-secondary)",
+                border: "1px solid var(--border)",
+                transitionDuration: "var(--duration-normal)",
+              }}
+            >
+              {isActive ? "停止" : "返回"}
+            </button>
+          )}
         </div>
       </div>
     </div>

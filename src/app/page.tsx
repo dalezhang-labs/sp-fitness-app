@@ -15,6 +15,7 @@ import ExerciseCard from "@/components/ExerciseCard";
 import ExerciseForm from "@/components/ExerciseForm";
 import Timer from "@/components/Timer";
 import Calendar from "@/components/Calendar";
+import ToastContainer, { toast } from "@/components/Toast";
 
 type View = "training" | "calendar";
 
@@ -32,16 +33,14 @@ export default function Home() {
   const [allLogs, setAllLogs] = useState<DayLog[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [loading, setLoading] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
+  // #8 fix: read sound preference synchronously to avoid extra render
+  const [soundOn, setSoundOn] = useState(() => getSoundEnabled());
 
   const [showForm, setShowForm] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [activeTimer, setActiveTimer] = useState<Exercise | null>(null);
 
   const { play } = useSound();
-
-  // Sync sound preference from localStorage on mount
-  useEffect(() => { setSoundOn(getSoundEnabled()); }, []);
 
   const toggleSound = () => {
     const next = !soundOn;
@@ -50,6 +49,7 @@ export default function Home() {
     if (next) play("click");
   };
 
+  // #2 fix: toast on fetch errors
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
@@ -63,6 +63,7 @@ export default function Home() {
       setAllLogs(logs);
     } catch (err) {
       console.error(err);
+      toast("数据加载失败，请检查网络后重试", "error");
     } finally {
       setLoading(false);
     }
@@ -73,24 +74,41 @@ export default function Home() {
   const isCompletedToday = (id: string) =>
     todayLog.completedExercises.some((e) => e.exerciseId === id);
 
+  // #2 fix: toast on save/delete errors
   const handleSaveExercise = async (exercise: Exercise) => {
-    await saveExercise(exercise);
-    play("click");
-    setShowForm(false);
-    setEditingExercise(null);
-    refreshData();
+    try {
+      await saveExercise(exercise);
+      play("click");
+      toast("已保存", "success");
+      setShowForm(false);
+      setEditingExercise(null);
+      refreshData();
+    } catch (err) {
+      console.error(err);
+      toast("保存失败，请重试", "error");
+    }
   };
 
   const handleDeleteExercise = async (id: string) => {
     if (confirm("确定删除这个训练动作？")) {
-      play("cancel");
-      await deleteExercise(id);
-      refreshData();
+      try {
+        play("cancel");
+        await deleteExercise(id);
+        toast("已删除", "info");
+        refreshData();
+      } catch (err) {
+        console.error(err);
+        toast("删除失败，请重试", "error");
+      }
     }
   };
 
+  // #7 fix: go to today from calendar
+  const handleGoToToday = () => {
+    setCalendarMonth(new Date());
+  };
+
   const todayCompleted = todayLog.completedExercises.length;
-  const todayParts = new Set(todayLog.completedExercises.map((e) => e.bodyPart));
 
   // Today's streak-style summary
   const partStats = (Object.keys(BODY_PARTS) as BodyPart[]).map((p) => ({
@@ -100,6 +118,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--surface-base)" }}>
+      {/* #2 fix: global toast container */}
+      <ToastContainer />
 
       {/* ── Header ─────────────────────────────── */}
       <header
@@ -137,14 +157,12 @@ export default function Home() {
               aria-pressed={soundOn}
             >
               {soundOn ? (
-                // Speaker with waves
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <path d="M2 5.5H4.5L8 2.5V12.5L4.5 9.5H2V5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
                   <path d="M10 5C10.8 5.8 11 6.4 11 7.5C11 8.6 10.8 9.2 10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                   <path d="M12 3.5C13.5 5 14 6.2 14 7.5C14 8.8 13.5 10 12 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                 </svg>
               ) : (
-                // Speaker muted
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                   <path d="M2 5.5H4.5L8 2.5V12.5L4.5 9.5H2V5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
                   <path d="M11 5.5L13.5 8M13.5 5.5L11 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
@@ -323,6 +341,7 @@ export default function Home() {
             onNextMonth={() =>
               setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1))
             }
+            onGoToday={handleGoToToday}
           />
         )}
       </main>
